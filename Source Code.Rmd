@@ -1,0 +1,625 @@
+---
+title: "11517 Project"
+author: "Kieran Yogaraj"
+date: "15/05/2020"
+output:
+  html_document:
+    df_print: paged
+  word_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+# Introduction/Background Research #
+### Research into the Ames Housing Dataset ###
+**Domain Expertise**
+
+I know that Suburbs do have a large effect on the Price of Houses. Especially Suburbs near schools and universities, near the CBD and near workplaces such as offices and factories (3).
+
+The size of Houses will definitely have an effect on the House Price (3). 
+
+The state of the economy changes over time, if the economy is doing well, this will increase the House Price (3).
+
+Also different seasons may affect the rate of houses being sold. Summer in the USA occurs from June - August (4). Autumn occurs from September - November (4). Winter occurs from December - February (4). Spring occurs from March - May (4). This may affect the Price.
+
+The state of the housing market. The number of houses available to purchase affect the Price. If there are more houses available then the Price will decrease. If there are few houses available then the Price will be high (1). 
+
+The town Ames has a university whose population makes up 50% of Ames' population. Perhaps this may affect the House Prices in Suburbs near the university (2). 
+
+Different demographics in different Suburbs will affect the type of Houses built. University students would most likely be living in Townhouses whereas families would most likely be living in family or duplex houses (3). 
+
+Renovating houses can increase the Price, especially when adding new rooms or increasing the size of an existing room (3). This overall increases the size of the House, which results in the increasing the House Price. 
+
+The type of materials that the Houses are made of and the quality of the Houses themselves will affect the Price. Some materials will affect the insulation and cooling of the entire House (3), which may be an important factor when buyers buy Houses during particular Seasons. Also buyers will consider the quality and finish of Houses while purchasing Houses (3).   
+
+
+
+**Understanding the variables**
+
+The Neighborhood variable will help investigate the effect Suburbs have on the House Price. 
+
+LotArea is the variable that represents House Sizes.
+
+YearBuilt tells when the Houses were built. 
+
+I can investigate economic effects on the House Price by using the MoSold and YrSold variables, which represents the date of when the Houses were bought. 
+
+The MoSold and YrSold variables can also be used to have a look at the effect seasons have on the rate of Houses being bought. 
+
+Once again, MoSold and YrSold can be used the explain the state of the housing market. 
+
+To see how different demographics will affect the House Price, MSSubClass, BldgType and HouseStyle will be the variables of interest. This is because these variables represent the Type of Houses such as family home, townhouse duplex etc. 
+
+Renovating can be explained with the variables LotArea and YearRemodAdd where the latter variable is the year when the renovations occurred. 
+
+The quality of the House and the material types the Houses are made of can be investigated with the variables Foundation, OverallQual and OverallCond.   
+
+
+### Problem identification and understanding ###
+**Questions of interest**
+
+What are the House Prices amongst different Suburbs?
+
+Does the Size of Houses affect the Houses' price?
+
+Does the Age of Houses affect the Houses' price? 
+
+Does the time of purchasing Houses affect House Prices?
+
+Do different seasons affect House prices?
+
+What is the Price range in different House types?
+
+Will the quality of the houses themselves affect the houses' prices? 
+
+What is the difference between SalePrice and Predicted SalePrice in the Years the Houses were sold?
+
+
+**Data Science questions**
+
+What is the SalePrice in different Neighborhoods? 
+Does LotArea affect the SalePrice?
+
+Does YearBuilt affect the SalePrice?  
+
+Does the time of purchasing Houses affect the SalePrice?
+
+Does the season affect SalePrice?
+
+What is the SalePrice range within BldgType?
+
+Will OverallQual affect the SalePrice? 
+
+What variables in the dataset together can help predict the SalePrice? 
+
+Compare YrSold and SalePrice with YrSold and Predicted SalePrice? (This is answered at the end of the Evaluation Section).
+
+  
+  
+# Data Preprocessing #
+```{r, warning=FALSE, echo=TRUE, message=FALSE}
+library(dplyr)
+
+house_data <- read.csv("train.csv")
+dim(house_data)
+
+colSums(is.na(house_data))
+
+#Alley, PoolQC and MiscFeature variables have more than 1350 missing values, which is at least 92% of the dataset's number of rows. They will be removed from the dataset.  
+
+house_data <- house_data %>% select(-c("Alley", "PoolQC", "MiscFeature"))
+
+#Remove ID column as it is not necessary.
+house_data <- house_data[-1]
+
+
+#Impute missing data in numeric variables because numeric variables will be used for modelling purposes and to find local outlier factors. 
+df <- house_data[sapply(house_data,is.numeric)] #Extract numeric variables.
+colSums(is.na(df)) #LotFrontage, MasVnrArea, GarageYrBlt are the numeric variables with missing data.  
+
+#Impute the missing data with the median.
+house_data$LotFrontage[is.na(house_data$LotFrontage)] <- median(house_data$LotFrontage, na.rm=TRUE) 
+
+house_data$MasVnrArea[is.na(house_data$MasVnrArea)] <- median(house_data$MasVnrArea, na.rm=TRUE) 
+
+house_data$GarageYrBlt[is.na(house_data$GarageYrBlt)] <- median(house_data$GarageYrBlt, na.rm=TRUE) 
+
+#Checking if all the missing data in the numeric variables are gone.
+colSums(is.na(house_data[sapply(house_data,is.numeric)]))
+```
+
+
+
+# EDA #
+### Problems of Interest ###
+
+**What is the SalePrice in different Neighborhoods?** 
+```{r, warning=FALSE, echo=TRUE, message=FALSE}
+library(ggplot2)
+
+ggplot(house_data, aes(x=Neighborhood, y=SalePrice, fill=Neighborhood)) +
+  geom_boxplot() +
+  stat_summary(fun.y = mean,
+               geom = "point",
+               shape = 20,
+               size = 1.5,
+               colour = "pink",
+               fill = "pink") +
+  xlab("Neighborhoods") +
+  ylab("House Sale Price (USD)") +
+  ggtitle("The House Sale Prices in different Neighborhoods") +
+    scale_y_continuous(labels=scales::comma) +
+  theme(plot.title = element_text(hjust=0.5),
+        axis.title.x = element_text(hjust=0.5),
+        axis.title.y = element_text(hjust=0.5),
+        axis.text.x = element_text(angle = 45, hjust = 1), legend.position="none")
+```
+
+The two most expensive Neighborhoods are NoRidge and NridgHt because they have the most expensive Houses, which represent as their outliers. There are some Neighborhoods with a low number of observations, which could be affecting their distribution and median SalePrice. NridgHt and StoneBr have the most observations.
+
+There is a lot of variation of the SalePrice in different Neighborhoods. The Neighborhoods with high observations have higher SalePrice means and medians whilst the Neighborhoods with the least observations have lower SalePrice means and medians.   
+
+
+
+**Does LotArea affect the SalePrice?**
+```{r, warning=FALSE, echo=TRUE}
+ggplot(house_data, aes(x=LotArea, y=SalePrice)) +
+  geom_point() +
+  geom_smooth(method="lm") +
+  xlab("House Size (Square Feet)") +
+  ylab("House Sale Price (USD)") +
+  ggtitle("The relationship between House Size and House Sale Price") +
+  scale_x_continuous(labels=scales::comma) +
+  scale_y_continuous(labels=scales::comma) +
+  theme(plot.title = element_text(hjust=0.5),
+        axis.title.x = element_text(hjust=0.5),
+        axis.title.y = element_text(hjust=0.5),
+        axis.text.x = element_text(hjust=0.5))
+```
+
+There is a linear relationship between House Size and Sale Price, the outliers in LotArea caused this relationship. However, some expensive houses are smaller than cheaper houses. But at the same time, there are expensive houses that are bigger than cheaper houses, which was expected. 
+
+
+
+**Does YearBuilt affect the SalePrice?**
+```{r, warning=FALSE, echo=TRUE}
+ggplot(house_data, aes(x=YearBuilt, y=SalePrice)) +
+  geom_point() +
+  geom_smooth(method="lm") +
+  xlab("Year Built") +
+  ylab("House Sale Price (USD)") +
+  ggtitle("The relationship between Year Built and House Sale Price") +
+  scale_y_continuous(labels=scales::comma) +
+  theme(plot.title = element_text(hjust=0.5),
+        axis.title.x = element_text(hjust=0.5),
+        axis.title.y = element_text(hjust=0.5),
+        axis.text.x = element_text(hjust=0.5))
+```
+
+There is a linear relationship between Year Built and Sale Price. As house age increases, the house price increases. The linear relationship might have occurred from the outliers. 
+
+
+
+**Does the time of purchasing Houses affect the SalePrice?**
+```{r, warning=FALSE, echo=TRUE}
+#Median SalePrice for each Year. 
+house_time <- house_data %>% group_by(YrSold) %>% summarise(Median = median(SalePrice))
+
+ggplot(house_time, aes(x=YrSold, y=Median)) +
+  geom_line() +
+  xlab("Year") +
+  ylab("Median House Sale Price (USD)") +
+  ggtitle("Median House Sale Price over Years") +
+  scale_y_continuous(labels=scales::comma) +
+  theme(plot.title = element_text(hjust=0.5),
+        axis.title.x = element_text(hjust=0.5),
+        axis.title.y = element_text(hjust=0.5),
+        axis.text.x = element_text(hjust=0.5))
+```
+
+Interestingly, the Median Sale Price increases from 2006 to 2007 then decreases from 2007 to 2010 but decreases by 12,000 USD. The sudden drop in the Price occurred due to the global financial crisis (5). This plot will be used to answer the problem at the end of the Evaluation Section. Let's observe the Median Sale Price over Months to get more insights. 
+
+
+```{r, warning=FALSE, echo=TRUE}
+#Median SalePrice for each Month.
+date_price <- house_data %>% group_by(YrSold, MoSold) %>% summarise(Median = median(SalePrice))
+
+#Convert both YrSold and MoSold datatypes into Factor.
+date_price$YrSold <- as.factor(date_price$YrSold)
+date_price$MoSold <- as.factor(date_price$MoSold)
+
+ggplot(date_price, aes(x=MoSold, y=Median, col=YrSold, group=YrSold)) +
+  geom_line() +
+  xlab("Months") +
+  ylab("Median House Sale Price (USD)") +
+  ggtitle("Median House Sale Price over Months in different Years") +
+  scale_y_continuous(labels=scales::comma) +
+  theme(plot.title = element_text(hjust=0.5),
+        axis.title.x = element_text(hjust=0.5),
+        axis.title.y = element_text(hjust=0.5),
+        axis.text.x = element_text(hjust=0.5)) +
+  scale_colour_manual(name="Years", labels=c("2006","2007","2008","2009","2010"),
+                      values=c("tomato2","yellowgreen","cornflowerblue","steelblue","slateblue4"))
+```
+
+The Median Sale Price in 2007 was almost constant in the first 5 months then the Price increased dramatically in the last 7 months then there was a sharp decrease from 12/2007 to 1/2008. The dramatic increase of the Price is explained by the USA Housing Bubble (6). There was also a big decreased from 12/2006 to 1/2007 and from 12/2008 to 1/2009. This suggests that the demand for purchasing houses decreased at the start of the year (1). Most years almost had the same Price from the 4th Month to the 7th Month. 
+
+
+
+**Does the season affect SalePrice?**
+```{r, warning=FALSE, echo=TRUE}
+#Create SeasonSold variable.
+house_data$SeasonSold <- ifelse(house_data$MoSold==12, "Winter", 
+                         ifelse(house_data$MoSold==1, "Winter",
+                         ifelse(house_data$MoSold==2, "Winter", 
+                         ifelse(house_data$MoSold==3, "Spring",
+                         ifelse(house_data$MoSold==4, "Spring",
+                         ifelse(house_data$MoSold==5, "Spring",
+                         ifelse(house_data$MoSold==6, "Summer",
+                         ifelse(house_data$MoSold==7, "Summer",
+                         ifelse(house_data$MoSold==8, "Summer", 
+                         ifelse(house_data$MoSold==9, "Autumn", 
+                         ifelse(house_data$MoSold==10, "Autumn", 
+                         ifelse(house_data$MoSold==11, "Autumn", 
+                         NA))))))))))))
+
+#Ordering the Seasons, Winter > Spring > Summer > Autumn. 
+house_data$SeasonSold <- factor(house_data$SeasonSold, levels=c("Winter","Spring","Summer","Autumn"), ordered=TRUE)
+
+#Median SalePrice for each Season
+season_price <- house_data %>% group_by(YrSold,SeasonSold) %>% summarise(Median=median(SalePrice))
+
+#Convert YrSold datatypes into Factor. 
+season_price$YrSold <- as.factor(season_price$YrSold)
+
+ggplot(season_price, aes(x=SeasonSold, y=Median, col=YrSold, group=YrSold)) +
+  geom_line() +
+  xlab("Seasons") +
+  ylab("Median House Sale Price (USD)") +
+  ggtitle("Median House Sale Price over Seasons in different Years") +
+  scale_y_continuous(labels=scales::comma) +
+  theme(plot.title = element_text(hjust=0.5),
+        axis.title.x = element_text(hjust=0.5),
+        axis.title.y = element_text(hjust=0.5),
+        axis.text.x = element_text(hjust=0.5)) +
+  scale_colour_manual(name="Years", labels=c("2006","2007","2008","2009","2010"),
+                      values=c("tomato2","yellowgreen","cornflowerblue","steelblue","slateblue4"))
+```
+
+For all years, the Sale Price decreased from Winter to Spring, especially in 2006 and 2007 where they had the biggest decreases. This could indicate that the demand for purchasing Houses during Spring is low. 2007 has a sharp increase from Spring to Summer then to Autumn. In Autumn to Winter in all years except for 2007 to 2008, the Sale Price had a small increase or decrease. In all years apart from 2007, the Price had little change from Spring to Summer. It is difficult to say if either the seasons or the housing bubble and the global financial crisis are affecting SalePrice. 
+
+
+
+**What is the SalePrice range within BldgType?**
+```{r, warning=FALSE,echo=TRUE}
+ggplot(house_data, aes(x=BldgType, y=SalePrice, fill=BldgType)) +
+  geom_boxplot() +
+  stat_summary(fun.y = mean,
+               geom = "point",
+               shape = 20,
+               size = 3,
+               colour = "pink",
+               fill = "pink") +
+  xlab("House Types") +
+  ylab("House Sale Price (USD)") +
+  ggtitle("The range of House Sale Prices in different House Types") +
+  scale_x_discrete(name="House Types",
+                   labels=c("Single Family", "Two Family", "Duplex", "Townhouse End", "Townhouse Inside")) +  
+  scale_y_continuous(labels=scales::comma) +
+  theme(plot.title = element_text(hjust=0.5),
+        axis.title.x = element_text(hjust=0.5),
+        axis.title.y = element_text(hjust=0.5),
+        axis.text.x = element_text(hjust = 0.5), legend.position="none")
+```
+
+Single Family has the greatest range in Sale Price compared to other House Types. The mean and median of all House Types are some what similar. Single Family Houses can be the most expensive and the cheapest House Types in Ames. Single Family Houses also have the most outliers compared to other House Types. The low medians and means in Two Family and Duplex could be explained from the low number of observations in those House Types. 
+
+
+
+**Will OverallQual affect the SalePrice?**
+```{r, warning=FALSE,echo=TRUE}
+quality_price <- house_data %>% group_by(OverallQual) %>% summarise(Median=median(SalePrice))
+
+quality_price$OverallQual <- as.factor(quality_price$OverallQual)
+
+ggplot(quality_price, aes(x=OverallQual, y=Median, fill=OverallQual)) + geom_bar(stat="identity") +
+  xlab("Overall Material and Finish Rates of Houses") +
+  ylab("Median House Sale Price (USD)") +
+  ggtitle("The Median House Sale Price in different Overall Material and Finish Rates of Houses") +
+  scale_y_continuous(labels=scales::comma) +
+  theme(plot.title = element_text(hjust=0.5),
+        axis.title.x = element_text(hjust=0.5),
+        axis.title.y = element_text(hjust=0.5),
+        axis.text.x = element_text(hjust = 0.5), legend.position="none")
+
+```
+
+We can clearly see the Sale Price increases as the Overall Rate increases. The Rate of 10 has the largest Sale Price while the Rate of 1 has the lowest Sale Price. 
+
+
+
+### Finding Outliers ###
+```{r,warning=FALSE,echo=TRUE, message=FALSE}
+#Find local outlier factors in the whole data. 
+library("DMwR")
+
+df <- house_data[sapply(house_data,is.numeric)] 
+z_data <- scale(df)
+lof_data <- lofactor(z_data,5)
+which(lof_data > 1.5) #Index of the outliers found. 
+outlier_data <- house_data[which(lof_data > 1.5),] #Rows that are outliers. 
+#I wont be imputing the outliers because I ran out of time. 
+```
+
+
+
+### Which variables are significant? ###
+```{r,warning=FALSE,echo=TRUE, message=FALSE}
+library(reshape2)
+
+df <- house_data[c(1:77)] #Excluding SeasonSold variable. 
+
+#Extract all numeric variables then calcuate correlation and melt them. 
+melted_var <- melt(cor(df[sapply(df,is.numeric)]))
+
+ggplot(melted_var, aes(x=Var1, y=Var2, fill=value)) +
+  geom_tile() +
+  xlab("Variables") +
+  ylab("Variables") +
+  ggtitle("Correlation between all variables") +
+  scale_fill_gradient2(name="Pearson\nCorrelation", low="blue", high="red", mid="white", midpoint=0, limit=c(-1,1)) +
+  theme(plot.title = element_text(hjust=0.5),
+        axis.title.x = element_text(hjust=0.5),
+        axis.title.y = element_text(hjust=0.5),
+        axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+Looking at the SalePrice row, I am interested in the variables that have a high positive or high negative correlation with SalePrice. These variables are OverallQual, YearBuilt, YearRemodAdd, TotalBsmtSF, X1stFlrSF, GrLivArea, FullBath, TotRmsAbvGrd, GarageCars and GarageArea. 
+
+
+
+# Further Preprocessing #
+```{r,warning=FALSE,echo=TRUE, message=FALSE}
+library(GGally)
+
+#Select variables based on their high correlation with SalePrice from the correlation heat map.
+df <- house_data %>% select(c("SalePrice", "OverallQual", "YearBuilt", "YearRemodAdd", "TotalBsmtSF", "X1stFlrSF", "GrLivArea", "FullBath", "TotRmsAbvGrd", "GarageCars", "GarageArea"))
+
+#To view the correlation value between SalePrice and selected variables. 
+ggcorr(df, label=TRUE)
+```
+
+Most variables have a correlation of 0.5 or 0.6 with SalePrice. GrLivArea and OverallQual have a correlation of 0.7 and 0.8, respectively. Both variables will be used in creating a model to predict SalePrice. 
+
+```{r,warning=FALSE,echo=TRUE}
+model_variables <- df %>% select(c(OverallQual, GrLivArea, SalePrice))
+```
+
+
+
+# Modelling #
+
+**Linear Model**
+```{r,warning=FALSE,echo=TRUE}
+#Creating a linear model to predict SalePrice by using OverallQual as the predictor. 
+model1 <- lm(SalePrice ~ OverallQual, model_variables)
+
+summary(model1)
+
+
+#Creating another linear model to predict SalePrice by using OverallQual and GrLivArea as the predictors.
+model2 <- lm(SalePrice ~ OverallQual + GrLivArea, model_variables)
+
+summary(model2)
+```
+
+Model1's equation is SalePrice = -96206.1 + 45435.8*OverallQual where -96206.1 is the intercept and 45435.8 is the slope. The p-value of 2e-16 indicates that OverallQual is a meaningful predictor of Model1. 
+
+Model2's equation is SalePrice = -104092.67 + 32849.05xOverallQual + 55.86xGrLivArea where -104092.67 is the intercept and, 32849.05 and 55.86 are the slopes. The p-value of 2e-16 indicates that both OverallQual and GrLivArea are meaningful predictors of Model2. 
+
+
+
+**Using model to predict SalePrice in test data**
+```{r,warning=FALSE,echo=TRUE}
+#First clean the test data the same way as the training data.
+test_data <- read.csv("test.csv")
+
+colSums(is.na(test_data))
+
+#Removing variables with high number of missing data. 
+test_data <- test_data %>% select(-c("Alley", "PoolQC", "MiscFeature"))
+
+test_data <- test_data[-1]
+
+#Imputing missing data in numeric variables.
+df <- house_data[sapply(house_data,is.numeric)] #Extract numeric variables. 
+
+colSums(is.na(df)) #LotFrontage, MasVnrArea, GarageYrBlt are the numeric variables with missing data.  
+
+#Impute the missing data with the median.
+house_data$LotFrontage[is.na(house_data$LotFrontage)] <- median(house_data$LotFrontage, na.rm=TRUE) 
+
+house_data$MasVnrArea[is.na(house_data$MasVnrArea)] <- median(house_data$MasVnrArea, na.rm=TRUE) 
+
+house_data$GarageYrBlt[is.na(house_data$GarageYrBlt)] <- median(house_data$GarageYrBlt, na.rm=TRUE) 
+
+#Checking if all the missing data in the numeric variables are gone.
+colSums(is.na(house_data[sapply(house_data,is.numeric)]))
+
+
+#Predicting.  
+#Using model1 to predict SalePrice in test data.
+test_data$predict_price1 <- predict(model1, newdata=test_data)
+
+#Using model2 to predict SalePrice in test data.
+test_data$predict_price2 <- predict(model2, newdata=test_data)
+```
+
+
+
+# Evaluation #
+
+**RMSE of the models against training and test data**
+
+```{r,warning=FALSE,echo=TRUE, message=FALSE}
+library(modelr)
+
+#MODEL1
+#rmse training data
+rmse(model1, house_data)
+
+#rmse test data
+rmse(model1, test_data)
+
+#MODEL2
+#rmse training data
+rmse(model2, house_data)
+
+#rmse test data
+rmse(model2, test_data)
+```
+
+The rmse of Model1 on the training data is 48589.45 and on the test data is 47166.46. The rmse of Model2 on the training data is 42457.61 and on the test data is 40259.37. We can see that Model2 has a lower rmse than Model1. This suggests Model2 is better at predicting SalePrice than Model1.   
+
+
+
+**Ploting Model's residuals**
+
+**MODEL1**
+```{r,warning=FALSE,echo=TRUE}
+#Dataframe with SalePrice, Predicted Price and Residuals. 
+test_residuals1 <- test_data %>% mutate(obs=SalePrice) %>% mutate(pred=predict_price1) %>% mutate(residual=abs(obs-pred))
+
+#High Residuals cut off > 100,000. 
+bad_test_residuals1 <- test_residuals1 %>% filter(residual>100000) %>% arrange(desc(residual))
+
+#Plot the residuals
+ggplot(test_residuals1, aes(x=obs, y=pred), col=residual) +
+  geom_point(aes(x=obs, y=pred, col=residual)) +
+  geom_point(data=bad_test_residuals1, col="red") +
+  scale_colour_gradient(name="Residuals", limits=c(0,100000)) +
+  geom_abline(slope=1, intercept=0) +
+  xlab("Observed SalePrice (USD)") +
+  ylab("Predicted SalePrice (USD)") +
+  ggtitle("Residuals of Test Data SalePrice from Model1") +
+  scale_x_continuous(labels=scales::comma) +
+  scale_y_continuous(labels=scales::comma) +
+  theme(plot.title = element_text(hjust=0.5),
+        axis.title.x = element_text(hjust=0.5),
+        axis.title.y = element_text(hjust=0.5),
+        axis.text.x = element_text(hjust = 0.5))
+```
+
+The Predicted SalePrice seems to be discrete because the predictor variable is OverallQual is discrete. 
+
+
+
+**MODEL2**
+```{r,warning=FALSE,echo=TRUE}
+#Dataframe with SalePrice, Predicted Price and Residuals. 
+test_residuals2 <- test_data %>% mutate(obs=SalePrice) %>% mutate(pred=predict_price2) %>% mutate(residual=abs(obs-pred))
+
+#High Residuals cut off > 100,000. 
+bad_test_residuals2 <- test_residuals2 %>% filter(residual>100000) %>% arrange(desc(residual))
+
+#Plot the residuals
+ggplot(test_residuals2, aes(x=obs, y=pred), col=residual) +
+  geom_point(aes(x=obs, y=pred, col=residual)) +
+  geom_point(data=bad_test_residuals2, col="red") +
+  scale_colour_gradient(name="Residuals", limits=c(0,100000)) +
+  geom_abline(slope=1, intercept=0) +
+  xlab("Observed SalePrice (USD)") +
+  ylab("Predicted SalePrice (USD)") +
+  ggtitle("Residuals of Test Data SalePrice from Model2") +
+  scale_x_continuous(labels=scales::comma) +
+  scale_y_continuous(labels=scales::comma) +
+  theme(plot.title = element_text(hjust=0.5),
+        axis.title.x = element_text(hjust=0.5),
+        axis.title.y = element_text(hjust=0.5),
+        axis.text.x = element_text(hjust = 0.5))
+```
+
+It is difficult to distinguish the difference between the Residual plots of both Models. 
+
+
+
+**Compare YrSold and SalePrice with YrSold and predicted SalePrice? (Problem of Interest)**
+
+```{r, warning=FALSE, echo=TRUE}
+#Predict SalePrice in training data using Model2.
+house_data$predict_price <- predict(model2, newdata=house_data)
+
+#Median predicted SalePrice for each Year. 
+price_year <- house_data %>% group_by(YrSold) %>% summarise(Median = median(predict_price))
+
+ggplot(price_year, aes(x=YrSold, y=Median)) +
+  geom_line() +
+  xlab("Year") +
+  ylab("Median Predicted House Sale Price (USD)") +
+  ggtitle("Median Predicted House Sale Price over Years") +
+  scale_y_continuous(labels=scales::comma) +
+  theme(plot.title = element_text(hjust=0.5),
+        axis.title.x = element_text(hjust=0.5),
+        axis.title.y = element_text(hjust=0.5),
+        axis.text.x = element_text(hjust=0.5))
+```
+
+Just like in the "Median House Sale Price over Years" lineplot, the SalePrice increases from 2006 to 2007 then decreases from 2007 to 2008. However, in the other lineplot, the SalePrice continues to decrease from 2008 to 2009 whereas the SalePrice in this plot increased instead. SalePrice then decreases from 2009 to 2010 in both plots. The SalePrices in this plot are higher than the SalePrices in the other plot for every year. 
+
+
+
+# Conclusion #
+
+**Summarise your findings and provide your found solutions to your problems of interest. Note anything you found particularly interesting and useful to your project.**
+
+There was a lot of variation in the SalePrice in different Neighborhoods. NoRidge and NridgHt were found to contain the most expensive Houses. The Neighborhoods with high observations have higher SalePrice means and medians compared to the Neighborhoods with the low observations. 
+
+There is a linear relationship between LotArea and SalePrice only because of the outliers in LotArea. A few number of expensive houses are smaller than cheap houses.  
+
+YearBuilt and SalePrice were found to have a linear relationship but not a strong one.   
+
+The global financial crisis occurred from 2007 to the early 2010s (5). This explains the sharp decrease in SalePrice in the Year lineplot. Looking at the Month lineplot. There was a sharp increase in SalePrice in the last 7 months of 2017, which is due to the USA Housing Bubble (6). From 12/2007 to 1/2008, SalePrice decreased dramatically. SalePrice also decreased in the first month of most years, which suggests the demand for Houses decreases at the start of the year (1). 
+
+Every year, the SalePrice decreases from Winter to Spring, which may indicate the demand for houses decreases during this time period. SalePrice remained almost consistent from Autumn to Winter and from Spring to Summer in most years. I am not sure if the season or housing bubble and the global financial crisis are affecting SalePrice.
+
+Single Family House Types were found to have the widest distribution. Its’ distribution shows that the most expensive and the cheapest houses in Ames are Single Family Type. The Type also has the most outliers compared to other House Types. 
+
+From the barplot, it is obviously to see that as OverallQual increases, SalePrice increases. This hints that there might be a linear relationship between the two variables. 
+
+To find which variables would be good predictors of SalePrice, a correlation heat map of all the variables in the training dataset was created. The variables that had a moderate to high correlation with SalePrice were OverallQual, YearBuilt, YearRemodAdd, TotalBsmtSF, X1stFlrSF, GrLivArea, FullBath, TotRmsAbvGrd, GarageCars and GarageArea. 
+
+The selected variables were then used in another correlation heat map to find their correlation value with SalePrice. GrLivArea and OverallQual have a correlation of 0.7 and 0.8, respectively, with SalePrice. These variables were used as predictors in the linear model. 
+
+Comparing between the two SalePrice vs Year lineplots. The trends between the Years were the same except from 2008 to 2009, where the observed SalePrice decreased while the predicted SalePrice increased. Also, the predicted SalePrices were higher than the observed SalePrice in every year.
+
+
+
+**State the best RMSE you obtained and how**
+
+The best RMSE I found was 42457.61 from the training data and 40259.37 from the test data. These RMSEs are from Model2, which used OverallQual and GrLivArea variables to predict SalePrice. 
+
+
+
+**State any improvements you could make and how you could achieve such improvements in future works.**
+
+Imputing the outliers found from the lof function. 
+
+
+# References #
+1. Economics Help. 2019. Factors that affect the housing market. [ONLINE] Available at: https://www.economicshelp.org/blog/377/housing/factors-that-affect-the-housing-market/. [Accessed 6 May 2020].
+
+2. Wikipedia. 2019. Ames, Iowa. [ONLINE] Available at: https://en.wikipedia.org/wiki/Ames,_Iowa. [Accessed 9 May 2020].
+
+3. Finder. 2015. What factors influence a property's market value?. [ONLINE] Available at: https://www.finder.com.au/what-influences-a-propertys-value. [Accessed 9 May 2020].
+
+4. Universal Traveller. 2018. North America Weather Guide. [ONLINE] Available at: https://www.universaltraveller.com.au/destinations/north-america/weather. [Accessed 11 May 2020].
+
+5. Wikipedia. 2010. Financial crisis of 2007-08. [ONLINE] Available at: https://en.wikipedia.org/wiki/Financial_crisis_of_2007–08. [Accessed 13 May 2020].
+
+6. Investopedia. 2019. Housing Bubble Definition. [ONLINE] Available at: https://www.investopedia.com/terms/h/housing_bubble.asp. [Accessed 13 May 2020].
+
+
