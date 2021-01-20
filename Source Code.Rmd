@@ -104,7 +104,7 @@ Compare YrSold and SalePrice with YrSold and Predicted SalePrice? (This is answe
 ```{r, warning=FALSE, echo=TRUE, message=FALSE}
 library(dplyr)
 
-house_data <- read.csv("train.csv")
+house_data <- read.csv("Train dataset.csv")
 dim(house_data)
 
 colSums(is.na(house_data))
@@ -426,7 +426,7 @@ Model2's equation is SalePrice = -104092.67 + 32849.05xOverallQual + 55.86xGrLiv
 **Using model to predict SalePrice in test data**
 ```{r,warning=FALSE,echo=TRUE}
 #First clean the test data the same way as the training data.
-test_data <- read.csv("test.csv")
+test_data <- read.csv("Test dataset.csv")
 
 colSums(is.na(test_data))
 
